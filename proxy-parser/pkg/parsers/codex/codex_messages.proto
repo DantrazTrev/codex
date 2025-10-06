@@ -1,0 +1,278 @@
+syntax = "proto3";
+
+package codex;
+
+option go_package = "github.com/openai/codex/proxy-parser/pkg/parsers/codex";
+
+// ============= Core Message Structures =============
+
+// Message in a conversation
+message Message {
+  string role = 1; // "system", "user", "assistant", "tool", "function"
+  oneof content {
+    string text_content = 2;
+    ContentArray content_parts = 3;
+  }
+  string name = 4; // For function/tool messages
+  repeated ToolCall tool_calls = 5;
+  string tool_call_id = 6; // For tool responses
+}
+
+// Array of content parts for multimodal
+message ContentArray {
+  repeated ContentPart parts = 1;
+}
+
+// Content part for multimodal messages
+message ContentPart {
+  string type = 1; // "text", "image_url"
+  string text = 2;
+  ImageUrl image_url = 3;
+}
+
+// Image URL for vision models
+message ImageUrl {
+  string url = 1;
+  string detail = 2; // "auto", "low", "high"
+}
+
+// Tool/Function call
+message ToolCall {
+  string id = 1;
+  string type = 2; // "function"
+  FunctionCall function = 3;
+}
+
+// Function call details
+message FunctionCall {
+  string name = 1;
+  string arguments = 2; // JSON string
+}
+
+// Tool definition
+message Tool {
+  string type = 1; // "function"
+  FunctionDefinition function = 2;
+}
+
+// Function definition
+message FunctionDefinition {
+  string name = 1;
+  string description = 2;
+  string parameters = 3; // JSON Schema as string
+}
+
+// ============= Request Messages =============
+
+// Chat completion request
+message ChatCompletionRequest {
+  string model = 1;
+  repeated Message messages = 2;
+  double temperature = 3;
+  int32 max_tokens = 4;
+  double top_p = 5;
+  int32 n = 6;
+  bool stream = 7;
+  repeated string stop = 8;
+  double presence_penalty = 9;
+  double frequency_penalty = 10;
+  map<string, int32> logit_bias = 11;
+  string user = 12;
+  repeated Tool tools = 13;
+  oneof tool_choice {
+    string tool_choice_string = 14; // "none", "auto", "required"
+    ToolChoiceObject tool_choice_object = 15;
+  }
+  ResponseFormat response_format = 16;
+  int32 seed = 17;
+}
+
+// Tool choice object
+message ToolChoiceObject {
+  string type = 1;
+  FunctionName function = 2;
+}
+
+// Function name for tool choice
+message FunctionName {
+  string name = 1;
+}
+
+// Response format
+message ResponseFormat {
+  string type = 1; // "text", "json_object", "json_schema"
+  JsonSchema json_schema = 2;
+}
+
+// JSON Schema for structured output
+message JsonSchema {
+  string name = 1;
+  string schema = 2; // JSON Schema as string
+  bool strict = 3;
+}
+
+// Code edit request
+message EditRequest {
+  string model = 1;
+  string instruction = 2;
+  string input = 3;
+  double temperature = 4;
+  int32 n = 5;
+}
+
+// Text completion request (legacy)
+message CompletionRequest {
+  string model = 1;
+  oneof prompt {
+    string prompt_string = 2;
+    StringArray prompt_array = 3;
+  }
+  int32 max_tokens = 4;
+  double temperature = 5;
+  double top_p = 6;
+  int32 n = 7;
+  bool stream = 8;
+  int32 logprobs = 9;
+  bool echo = 10;
+  repeated string stop = 11;
+  double presence_penalty = 12;
+  double frequency_penalty = 13;
+  string suffix = 14;
+}
+
+// String array for prompts
+message StringArray {
+  repeated string values = 1;
+}
+
+// ============= Response Messages =============
+
+// Chat completion response
+message ChatCompletionResponse {
+  string id = 1;
+  string object = 2; // "chat.completion"
+  int64 created = 3;
+  string model = 4;
+  repeated Choice choices = 5;
+  Usage usage = 6;
+  string system_fingerprint = 7;
+}
+
+// Choice in a completion
+message Choice {
+  int32 index = 1;
+  Message message = 2;
+  string finish_reason = 3; // "stop", "length", "tool_calls", "content_filter"
+  LogProbs logprobs = 4;
+}
+
+// Token usage
+message Usage {
+  int32 prompt_tokens = 1;
+  int32 completion_tokens = 2;
+  int32 total_tokens = 3;
+  CompletionTokensDetails completion_tokens_details = 4;
+}
+
+// Detailed completion tokens
+message CompletionTokensDetails {
+  int32 reasoning_tokens = 1;
+  int32 accepted_prediction_tokens = 2;
+  int32 rejected_prediction_tokens = 3;
+}
+
+// Log probabilities
+message LogProbs {
+  repeated LogProbsContent content = 1;
+}
+
+// Log probability content
+message LogProbsContent {
+  string token = 1;
+  double logprob = 2;
+  repeated int32 bytes = 3;
+  repeated TopLogProb top_logprobs = 4;
+}
+
+// Top log probabilities
+message TopLogProb {
+  string token = 1;
+  double logprob = 2;
+  repeated int32 bytes = 3;
+}
+
+// ============= Streaming Response Messages =============
+
+// Streaming response chunk
+message ChatCompletionChunk {
+  string id = 1;
+  string object = 2; // "chat.completion.chunk"
+  int64 created = 3;
+  string model = 4;
+  repeated StreamChoice choices = 5;
+  string system_fingerprint = 6;
+  Usage usage = 7; // Only in final chunk when stream_options.include_usage is true
+}
+
+// Streaming choice
+message StreamChoice {
+  int32 index = 1;
+  Delta delta = 2;
+  string finish_reason = 3;
+  LogProbs logprobs = 4;
+}
+
+// Delta content in streaming
+message Delta {
+  string role = 1;
+  string content = 2;
+  repeated ToolCall tool_calls = 3;
+  string refusal = 4;
+}
+
+// Edit response
+message EditResponse {
+  string object = 1; // "edit"
+  int64 created = 2;
+  repeated EditChoice choices = 3;
+  Usage usage = 4;
+}
+
+// Edit choice
+message EditChoice {
+  string text = 1;
+  int32 index = 2;
+}
+
+// Completion response (legacy)
+message CompletionResponse {
+  string id = 1;
+  string object = 2; // "text_completion"
+  int64 created = 3;
+  string model = 4;
+  repeated CompletionChoice choices = 5;
+  Usage usage = 6;
+}
+
+// Completion choice
+message CompletionChoice {
+  string text = 1;
+  int32 index = 2;
+  LogProbs logprobs = 3;
+  string finish_reason = 4;
+}
+
+// ============= Error Response =============
+
+// Error response
+message ErrorResponse {
+  Error error = 1;
+}
+
+// Error details
+message Error {
+  string message = 1;
+  string type = 2;
+  string param = 3;
+  string code = 4;
+}
