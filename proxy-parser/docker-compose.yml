@@ -1,0 +1,43 @@
+version: '3.8'
+
+services:
+  codex-proxy:
+    build: .
+    container_name: codex-proxy
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./config.yaml:/app/config.yaml:ro
+      - ./logs:/app/logs
+      - ./examples:/app/examples:ro
+    environment:
+      - TZ=UTC
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - codex-proxy-network
+
+  # Optional: Add a log viewer service
+  log-viewer:
+    image: busybox
+    container_name: codex-proxy-logs
+    command: tail -f /logs/proxy.log
+    volumes:
+      - ./logs:/logs:ro
+    depends_on:
+      - codex-proxy
+    networks:
+      - codex-proxy-network
+
+networks:
+  codex-proxy-network:
+    driver: bridge
+
+volumes:
+  logs:
+    driver: local

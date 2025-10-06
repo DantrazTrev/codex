@@ -1,0 +1,41 @@
+# Development Configuration for Codex Proxy Parser
+# This configuration is optimized for development and testing
+
+server:
+  port: 8080
+  host: "0.0.0.0"  # Listen on all interfaces for development
+  read_timeout: 30
+  write_timeout: 30
+
+proxy:
+  target_url: "https://api.openai.com"
+  timeout: 30
+  skip_tls_verify: true  # Allow self-signed certificates for testing
+  headers:
+    User-Agent: "Codex-Proxy-Parser/1.0-dev"
+
+parser:
+  enabled: true
+  parse_genai: true
+  parse_vibe_coding: true
+  max_body_size: 10485760  # 10MB
+  keywords:
+    - "openai"
+    - "anthropic"
+    - "claude"
+    - "gpt"
+    - "codex"
+    - "cursor"
+    - "github"
+    - "copilot"
+
+logging:
+  level: "debug"  # Verbose logging for development
+  format: "text"  # Human-readable format
+  file: "logs/proxy.log"
+
+output:
+  format: "json"
+  file: "logs/traffic.json"
+  console: true  # Show output in console
+  max_entries: 1000
