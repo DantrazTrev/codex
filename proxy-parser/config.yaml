@@ -1,0 +1,40 @@
+# Example configuration for Codex Proxy Parser
+proxy:
+  port: 8080
+  host: "0.0.0.0"
+  
+logging:
+  level: "info"
+  output: "traffic.log"
+  format: "json"
+  
+filtering:
+  include_endpoints:
+    - "/api/codex"
+    - "/backend-api"
+    - "/wham"
+    - "/v1/chat/completions"
+  exclude_headers:
+    - "Cookie"
+    - "Set-Cookie"
+    - "X-Request-Id"
+    
+analysis:
+  genai_patterns:
+    - "gpt-4"
+    - "gpt-3.5-turbo"
+    - "claude"
+    - "claude-instant"
+    - "completion"
+    - "chat/conversation"
+    - "messages"
+  
+  highlight_keywords:
+    - "model"
+    - "temperature"
+    - "max_tokens"
+    - "stream"
+    - "role"
+    - "content"
+    - "function_call"
+    - "tool_calls"
