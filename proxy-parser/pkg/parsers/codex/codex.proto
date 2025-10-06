@@ -1,0 +1,337 @@
+syntax = "proto3";
+
+package codex;
+
+option go_package = "github.com/openai/codex/proxy-parser/pkg/parsers/codex";
+
+// ============= Core Message Types =============
+
+// Content types for messages
+message Content {
+  oneof content_type {
+    string text = 1;
+    ContentArray array = 2;
+  }
+}
+
+message ContentArray {
+  repeated ContentItem items = 1;
+}
+
+message ContentItem {
+  string type = 1; // "text", "image_url", "input_text", "output_text"
+  string text = 2;
+  ImageUrl image_url = 3;
+}
+
+message ImageUrl {
+  string url = 1;
+  string detail = 2; // "auto", "low", "high"
+}
+
+// Main message structure
+message Message {
+  string role = 1; // "system", "user", "assistant", "function", "tool"
+  Content content = 2;
+  string name = 3; // For function messages
+  repeated ToolCall tool_calls = 4;
+  string tool_call_id = 5; // For tool responses
+}
+
+// Tool/Function calling
+message ToolCall {
+  string id = 1;
+  string type = 2; // "function"
+  FunctionCall function = 3;
+}
+
+message FunctionCall {
+  string name = 1;
+  string arguments = 2; // JSON string
+}
+
+// ============= Request Types =============
+
+// Chat completion request (main format Codex uses)
+message ChatCompletionRequest {
+  string model = 1;
+  repeated Message messages = 2;
+  double temperature = 3;
+  int32 max_tokens = 4;
+  bool stream = 5;
+  repeated Tool tools = 6;
+  ToolChoice tool_choice = 7;
+  ResponseFormat response_format = 8;
+  double frequency_penalty = 9;
+  double presence_penalty = 10;
+  double top_p = 11;
+  int32 n = 12;
+  repeated string stop = 13;
+  int32 seed = 14;
+  string user = 15;
+}
+
+// Code edit request
+message CodeEditRequest {
+  string model = 1;
+  string instruction = 2;
+  string input = 3;
+  double temperature = 4;
+  int32 n = 5;
+}
+
+// Tool definition
+message Tool {
+  string type = 1; // "function"
+  FunctionDefinition function = 2;
+}
+
+message FunctionDefinition {
+  string name = 1;
+  string description = 2;
+  string parameters = 3; // JSON Schema as string
+}
+
+message ToolChoice {
+  oneof choice {
+    string mode = 1; // "none", "auto", "required"
+    SpecificTool specific = 2;
+  }
+}
+
+message SpecificTool {
+  string type = 1;
+  FunctionName function = 2;
+}
+
+message FunctionName {
+  string name = 1;
+}
+
+message ResponseFormat {
+  string type = 1; // "text", "json_object"
+}
+
+// ============= Response Types =============
+
+// Chat completion response
+message ChatCompletionResponse {
+  string id = 1;
+  string object = 2; // "chat.completion"
+  int64 created = 3;
+  string model = 4;
+  repeated Choice choices = 5;
+  Usage usage = 6;
+  string system_fingerprint = 7;
+}
+
+message Choice {
+  int32 index = 1;
+  Message message = 2;
+  string finish_reason = 3; // "stop", "length", "tool_calls", "content_filter", "function_call"
+  LogProbs logprobs = 4;
+}
+
+message Usage {
+  int32 prompt_tokens = 1;
+  int32 completion_tokens = 2;
+  int32 total_tokens = 3;
+  CompletionTokensDetails completion_tokens_details = 4;
+}
+
+message CompletionTokensDetails {
+  int32 reasoning_tokens = 1;
+}
+
+message LogProbs {
+  repeated LogProbContent content = 1;
+}
+
+message LogProbContent {
+  string token = 1;
+  double logprob = 2;
+  repeated int32 bytes = 3;
+  repeated TopLogProb top_logprobs = 4;
+}
+
+message TopLogProb {
+  string token = 1;
+  double logprob = 2;
+  repeated int32 bytes = 3;
+}
+
+// Streaming response chunk
+message ChatCompletionChunk {
+  string id = 1;
+  string object = 2; // "chat.completion.chunk"
+  int64 created = 3;
+  string model = 4;
+  repeated StreamChoice choices = 5;
+  string system_fingerprint = 6;
+}
+
+message StreamChoice {
+  int32 index = 1;
+  Delta delta = 2;
+  string finish_reason = 3;
+  LogProbs logprobs = 4;
+}
+
+message Delta {
+  string role = 1;
+  string content = 2;
+  repeated ToolCall tool_calls = 3;
+}
+
+// Code edit response
+message CodeEditResponse {
+  string object = 1; // "edit"
+  int64 created = 2;
+  repeated EditChoice choices = 3;
+  Usage usage = 4;
+}
+
+message EditChoice {
+  string text = 1;
+  int32 index = 2;
+}
+
+// ============= Codex Backend Types =============
+
+// Code task request
+message CodeTaskRequest {
+  string id = 1;
+  string title = 2;
+  string content = 3;
+  repeated string file_paths = 4;
+  string language = 5;
+  CodeTaskOptions options = 6;
+}
+
+message CodeTaskOptions {
+  bool include_context = 1;
+  bool stream = 2;
+  int32 max_tokens = 3;
+}
+
+// Code task response  
+message CodeTaskResponse {
+  string id = 1;
+  string status = 2; // "pending", "in_progress", "completed", "failed"
+  CodeTaskResult result = 3;
+  string error = 4;
+}
+
+message CodeTaskResult {
+  string code = 1;
+  string explanation = 2;
+  repeated FileEdit edits = 3;
+  repeated string commands = 4;
+}
+
+message FileEdit {
+  string path = 1;
+  string operation = 2; // "create", "modify", "delete"
+  string content = 3;
+  repeated LineDiff diffs = 4;
+}
+
+message LineDiff {
+  int32 line_number = 1;
+  string old_content = 2;
+  string new_content = 3;
+}
+
+// ============= Enforcement Rules =============
+
+message EnforcementPolicy {
+  repeated Rule rules = 1;
+  string default_action = 2; // "allow", "block", "redact"
+}
+
+message Rule {
+  string id = 1;
+  string name = 2;
+  RuleType type = 3;
+  string pattern = 4; // regex or exact match
+  string action = 5; // "allow", "block", "redact", "log"
+  string message = 6; // Message when rule triggers
+  repeated string fields = 7; // Which fields to check
+}
+
+enum RuleType {
+  CONTENT_FILTER = 0;
+  MODEL_RESTRICTION = 1;
+  TOKEN_LIMIT = 2;
+  TOOL_RESTRICTION = 3;
+  PII_DETECTION = 4;
+  CODE_PATTERN = 5;
+  FILE_PATH_FILTER = 6;
+}
+
+// ============= Parsed Traffic Record =============
+
+message ParsedTraffic {
+  string id = 1;
+  int64 timestamp = 2;
+  TrafficType type = 3;
+  string endpoint = 4;
+  
+  // Request data
+  oneof request {
+    ChatCompletionRequest chat_request = 5;
+    CodeEditRequest edit_request = 6;
+    CodeTaskRequest task_request = 7;
+  }
+  
+  // Response data
+  oneof response {
+    ChatCompletionResponse chat_response = 8;
+    CodeEditResponse edit_response = 9;
+    CodeTaskResponse task_response = 10;
+    StreamingData streaming_response = 11;
+  }
+  
+  // Extracted key information
+  ExtractedInfo extracted = 12;
+  
+  // Enforcement results
+  repeated EnforcementResult enforcements = 13;
+  
+  // Metadata
+  map<string, string> metadata = 14;
+}
+
+enum TrafficType {
+  CHAT_COMPLETION = 0;
+  CODE_EDIT = 1;
+  CODE_TASK = 2;
+  TOOL_CALL = 3;
+  UNKNOWN = 4;
+}
+
+message ExtractedInfo {
+  string user_message = 1;
+  string assistant_response = 2;
+  string model = 3;
+  int32 total_tokens = 4;
+  repeated string tool_calls = 5;
+  repeated string file_paths = 6;
+  string code_snippet = 7;
+  bool is_streaming = 8;
+}
+
+message StreamingData {
+  repeated ChatCompletionChunk chunks = 1;
+  string combined_content = 2;
+  string finish_reason = 3;
+}
+
+message EnforcementResult {
+  string rule_id = 1;
+  string rule_name = 2;
+  string action_taken = 3; // "blocked", "redacted", "logged", "allowed"
+  string reason = 4;
+  string original_content = 5; // If redacted
+  string modified_content = 6; // After redaction
+}
