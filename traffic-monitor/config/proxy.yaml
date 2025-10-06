@@ -1,0 +1,88 @@
+# Proxy Server Configuration
+
+# Server settings
+server:
+  port: 8080
+  host: "localhost"
+  timeout: 30s
+
+# Logging configuration
+logging:
+  level: "info"  # debug, info, warn, error
+  file: "traffic.log"
+  format: "json"  # json, text
+  max_size_mb: 100
+  max_backups: 5
+  max_age_days: 30
+
+# Traffic filtering
+filters:
+  # Only log requests to these domains (empty = log all)
+  include_domains: []
+  
+  # Never log requests to these domains
+  exclude_domains:
+    - "localhost"
+    - "127.0.0.1"
+    - "*.local"
+  
+  # Only log GenAI requests
+  genai_only: false
+  
+  # Log request/response bodies for these providers
+  log_bodies:
+    - "OpenAI"
+    - "Anthropic"
+    - "Google"
+
+# GenAI provider detection
+providers:
+  openai:
+    domains:
+      - "api.openai.com"
+      - "*.openai.azure.com"
+    endpoints:
+      - "/v1/chat/completions"
+      - "/v1/completions"
+      - "/v1/embeddings"
+  
+  anthropic:
+    domains:
+      - "api.anthropic.com"
+    endpoints:
+      - "/v1/messages"
+      - "/v1/complete"
+  
+  google:
+    domains:
+      - "generativelanguage.googleapis.com"
+      - "aiplatform.googleapis.com"
+    endpoints:
+      - "/v1/models/*/generateContent"
+      - "/v1/projects/*/locations/*/publishers/*/models/*"
+
+# Security settings
+security:
+  # Enable TLS for the proxy server
+  tls_enabled: false
+  cert_file: ""
+  key_file: ""
+  
+  # Skip TLS verification for upstream servers
+  skip_tls_verify: true
+  
+  # Rate limiting
+  rate_limit:
+    enabled: false
+    requests_per_minute: 1000
+
+# Performance settings
+performance:
+  # Buffer sizes
+  read_buffer_size: 4096
+  write_buffer_size: 4096
+  
+  # Connection pooling
+  max_idle_conns: 100
+  max_idle_conns_per_host: 10
+  idle_conn_timeout: 90s

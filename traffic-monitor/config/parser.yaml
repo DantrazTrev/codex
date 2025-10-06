@@ -1,0 +1,124 @@
+# Traffic Parser Configuration
+
+# Input settings
+input:
+  # Log file to parse
+  file: "traffic.log"
+  
+  # File format (json, csv, auto)
+  format: "json"
+  
+  # Skip malformed lines
+  skip_errors: true
+
+# Filtering options
+filters:
+  # Date range filtering
+  start_date: ""  # RFC3339 format: 2023-01-01T00:00:00Z
+  end_date: ""
+  
+  # Provider filtering
+  providers: []  # Empty = all providers
+  
+  # Only analyze GenAI requests
+  genai_only: false
+  
+  # HTTP methods to include
+  methods: ["GET", "POST", "PUT", "PATCH", "DELETE"]
+  
+  # Response code filtering
+  response_codes: []  # Empty = all codes
+  
+  # Minimum duration (ms)
+  min_duration: 0
+
+# Analysis settings
+analysis:
+  # Token usage estimation
+  token_estimation:
+    enabled: true
+    chars_per_token: 4
+    
+    # Cost estimation (USD per 1K tokens)
+    costs:
+      openai_gpt4: 
+        input: 0.03
+        output: 0.06
+      openai_gpt35:
+        input: 0.0015
+        output: 0.002
+      anthropic_claude:
+        input: 0.008
+        output: 0.024
+      default:
+        input: 0.01
+        output: 0.02
+  
+  # Performance percentiles to calculate
+  percentiles: [50, 90, 95, 99]
+  
+  # Top N items to show
+  top_n: 10
+
+# Output settings
+output:
+  # Output format (json, csv, html, summary)
+  format: "json"
+  
+  # Output file
+  file: "analysis.json"
+  
+  # Include request/response bodies in output
+  include_bodies: false
+  
+  # Pretty print JSON
+  pretty_json: true
+  
+  # Generate charts (requires additional dependencies)
+  generate_charts: false
+
+# Report sections to include
+reports:
+  summary: true
+  provider_stats: true
+  endpoint_analysis: true
+  error_analysis: true
+  performance_stats: true
+  token_usage: true
+  time_series: true
+  geographic_analysis: false  # Requires IP geolocation
+
+# Custom rules for request classification
+classification:
+  # Custom provider detection rules
+  custom_providers:
+    - name: "Custom AI Service"
+      domains: ["api.custom-ai.com"]
+      endpoints: ["/v1/generate"]
+  
+  # Request type classification
+  request_types:
+    chat_completion:
+      patterns: ["/chat/completions", "/v1/messages"]
+    text_completion:
+      patterns: ["/completions", "/complete"]
+    embedding:
+      patterns: ["/embeddings", "/embed"]
+    image_generation:
+      patterns: ["/images/generations", "/generate-image"]
+
+# Export settings
+export:
+  # Export to external systems
+  enabled: false
+  
+  # Webhook for real-time alerts
+  webhook:
+    url: ""
+    headers: {}
+    
+  # Database export
+  database:
+    type: ""  # postgres, mysql, sqlite
+    connection_string: ""
+    table_name: "traffic_logs"
