@@ -1,0 +1,66 @@
+# Production Configuration for Codex Proxy Parser
+# This configuration is optimized for production use
+
+server:
+  port: 8080
+  host: "127.0.0.1"  # Only listen on localhost for security
+  read_timeout: 120  # Increased for large requests
+  write_timeout: 120
+
+proxy:
+  target_url: "https://api.openai.com"
+  timeout: 120
+  skip_tls_verify: false
+  headers:
+    User-Agent: "Codex-Proxy-Parser/1.0"
+    # Add authentication headers if needed
+    # Authorization: "Bearer YOUR_API_KEY"
+    # X-API-Key: "YOUR_API_KEY"
+
+parser:
+  enabled: true
+  parse_genai: true
+  parse_vibe_coding: true
+  max_body_size: 104857600  # 100MB for large code files
+  keywords:
+    # GenAI providers
+    - "openai"
+    - "anthropic"
+    - "claude"
+    - "gpt"
+    - "dall-e"
+    - "whisper"
+    - "embedding"
+    - "completion"
+    - "chat"
+    
+    # Vibe coding tools
+    - "codex"
+    - "cursor"
+    - "github"
+    - "copilot"
+    - "tabnine"
+    - "kite"
+    - "intellicode"
+    - "vibe"
+    - "coding"
+    - "assistant"
+    
+    # Additional patterns
+    - "ai"
+    - "ml"
+    - "neural"
+    - "model"
+    - "inference"
+    - "training"
+
+logging:
+  level: "info"  # Use 'debug' for troubleshooting
+  format: "json"
+  file: "/var/log/codex-proxy/proxy.log"
+
+output:
+  format: "json"
+  file: "/var/log/codex-proxy/traffic.json"
+  console: false  # Disable console output in production
+  max_entries: 100000  # Increased for production
